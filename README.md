@@ -1,7 +1,9 @@
 # springboot+mdc实现链路追踪
 
 # 代码托管地址
-https://github.com/hejiancao/trace-mdc
+
+[https://github.com/hejiancao/trace-mdc](https://github.com/hejiancao/trace-mdc)
+
 # 实现过程
 
 新建工程
@@ -152,8 +154,47 @@ public class RestTemplateTraceIdInterceptor implements ClientHttpRequestIntercep
     }
 ```
 
+## Feign调用丢失traceId
+
+```java
+@Configuration
+public class FeignRequestInterceptor implements RequestInterceptor {
+    @Override
+    public void apply(RequestTemplate requestTemplate) {
+        String traceId = MDC.get(Constant.TRACE_ID);
+        if (traceId != null) {
+            requestTemplate.header(Constant.TRACE_ID, traceId);
+        }
+    }
+}
+```
+
+但是这种方式有一个问题，feign调用其实是新建了一个线程，我们知道mdc底层实际上是threadLocal，那么既然不是同一线程必然取不到值，这是我们需要解决的问题。
+
+解决方案：使用`RequestHeader` 传递traceId
+
+```java
+//使用RequestHeader传递traceId
+@GetMapping(value = "/user")
+String user(@RequestHeader(Constant.TRACE_ID) String traceId);
+```
+
+```java
+@GetMapping("/feign")
+public void feignTest() {
+    String user = serviceBFeign.user(MDC.get(Constant.TRACE_ID));
+    log.info(user);
+}
+```
+
+或者`feign.hystrix.enabled=false` ，如果不开启熔断，使用拦截器FeignRequestInterceptor是可以获取mdc值的，但是不建议这样做。
+
 参考:
 
 [https://mp.weixin.qq.com/s/lWpyAH_gC1zJIOe8oLPuyw](https://mp.weixin.qq.com/s/lWpyAH_gC1zJIOe8oLPuyw)
 
 [https://cloud.tencent.com/developer/article/1621309](https://cloud.tencent.com/developer/article/1621309)
+
+[https://blog.csdn.net/hkk666123/article/details/113964715](https://blog.csdn.net/hkk666123/article/details/113964715)
+
+[https://www.cnblogs.com/baizhanshi/p/11176343.html](https://www.cnblogs.com/baizhanshi/p/11176343.html)

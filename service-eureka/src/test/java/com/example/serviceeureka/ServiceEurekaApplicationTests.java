@@ -1,10 +1,10 @@
-package com.example.servicecommon;
+package com.example.serviceeureka;
 
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ServiceCommonApplicationTests {
+class ServiceEurekaApplicationTests {
 
     @Test
     void contextLoads() {
